@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Answering Website</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-box {
+            overflow-y: scroll;
+            flex: 1;
+            max-height: 70%;
+            background-color: #f2f2f2;
+            margin-top:5px;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            clear: both;
+            max-width: 70%;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            float: right;
+        }
+        .ai-message {
+            background-color: #e8e8e8;
+            float: left;
+            padding: 10px;
+            border-radius: 5px;
+            clear: both;
+            max-width: 70%;
+        }
+        .ai-message p {
+            margin: 5px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .source-link {
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .source-link:hover {
+            color: #0056b3;
+        }
+        .message p {
+            margin: 5px 0;
+        }
+        .fetching {
+            display: inline-block;
+            animation: fetching 1s infinite;
+        }
+        @keyframes fetching {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .input-container {
+            display: flex;
+            align-items: flex-end;
+            position: absolute;
+            margin-bottom:20px;
+            bottom: 0;
+            width: 100%;
+            justify-content: center;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            box-sizing: border-box;
+            width:35vw;
+        }
+        button {
+            padding: 10px;
+            margin-left: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .source-link {
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .source-link:hover {
+            color: #0056b3;
+        }
+        .ChatbotIcon {
+            width:50px;
+            height:50px;
+            border-radius:20px;
+            margin-right:5px;
+            margin-top:8px;
+            margin-left:5px;
+        }
+        .subcontainer {
+            display:flex;
+            flex-direction:row;
+            background-color: #ADD8E6;
+            border-radius: 10px;
+            padding-top:10px;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                max-width: 90%;
+                margin: 20px auto;
+                height: 80vh;
+            }
+            .input-container {
+                width: 100%;
+                justify-content: center;
+                position: relative;
+                bottom: 0;
+            }
+            input[type="text"] {
+                width: 60%;
+                margin-right: 5px;
+            }
+            button {
+                width: 30%;
+                margin-left: 5px;
+            }
+        }
+
+        @media only screen and (min-width: 600px) {
+            .container {
+                max-width: 90%;
+                margin: 20px auto;
+                height: 80vh;
+            }
+            .input-container {
+                width: 100%;
+                justify-content: center;
+                position: relative;
+                bottom: 0;
+            }
+            input[type="text"] {
+                width: 60%;
+                margin-right: 5px;
+            }
+            button {
+                width: 30%;
+                margin-left: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="subcontainer">
+            <img src="https://www.cio.com/wp-content/uploads/2023/08/chatbot_ai_machine-learning_emerging-tech-100778305-orig.jpg?quality=50&strip=all" class="ChatbotIcon"/>
+            <h1>ChatBot Support</h1>
+        </div>
+        
+        <h2>Please Select the Chatbot You Want To Use</h2>
+        <div>
+            <select id="chatbotSelect">
+                <option value="chatbot1">SAP Peacock</option>
+                <option value="chatbot2">Malaysia Nsc</option>
+                <!-- Add more chatbots as needed -->
+            </select>
+        </div>
+        <div class="chat-box" id="chatBox"></div>
+        <div class="input-container">
+            <input type="text" id="questionInput" placeholder="Enter your question">
+            <button onclick="askQuestion()">Ask</button>
+        </div>
+    </div>
+
+    <!-- Include Socket.IO library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.min.js"></script>
+
+    <!-- Define the chatbots object -->
+    <script>
+        const chatbots = {
+            chatbot1: {
+                workspaceId: "zWIyhku",
+                id: "65a9033926c1b327e42090ee",
+                apiKey: "fc4f2e2443c24e9baf1af45daa68ece4"
+            },
+            chatbot2: {
+                workspaceId: "zWIyhku",
+                id: "65a9097e26c1b327e42090ef",
+                apiKey: "54290d2463bd497884568d94eaf7fb45"
+            },
+            // Add more chatbots as needed
+        };
+    </script>
+
+<script>
+    class PrismeaiAIK {
+        constructor() {
+            this.apiHost = "https://api.stellantis.prisme.ai/v2";
+        }
+
+        async fetch(path, body, opts) {
+            const { method = "POST" } = opts || {};
+            const url = `${this.apiHost}${path}`;
+            var selectedChatbot = document.getElementById("chatbotSelect").value;
+            const selectedChatbotDetails = chatbots[selectedChatbot];
+            const apikeyis = selectedChatbotDetails.apiKey;
+            const headers = {
+                "Content-Type": "application/json",
+                'knowledge-project-apikey': apikeyis
+            };
+            const req = await fetch(url, {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : undefined,
+            });
+            const result = await req.json();
+            if (req.status > 399) {
+                throw result;
+            }
+            return result;
+        }
+
+        async anonymousLogin() {
+            this.user = await this.fetch("/login/anonymous");
+        }
+
+        async init(project, eventCallback) {
+            await this.anonymousLogin();
+            this.eventCallback = eventCallback;
+            this.project = project;
+
+            const filters = {
+                "source.sessionId": "*",
+                "source.socketId": "*",
+            };
+            const queryString = new URLSearchParams(filters || {}).toString();
+            const fullQueryString = queryString ? `?${queryString}` : "";
+            const extraHeaders = {
+                authorization: `Bearer ${this.project.apiKey}`,
+            };
+
+            this.client = io(
+                `${this.apiHost}/workspaces/${this.project.workspaceId}/events${fullQueryString}`,
+                {
+                    extraHeaders,
+                    withCredentials: true,
+                }
+            );
+
+            this.client.on("error", (err) => {
+                console.error("Websocket error : ", err);
+            });
+            this.client.on("connect", () => {
+                console.log("Websocket connected");
+                this.client.emit("filters", {
+                    payloadQuery: [{
+                        "source.sessionId": "*",
+                        type: ["apiMessageChunk", "completedMessage", "sendSourcesMessage"],
+                    }],
+                });
+            });
+
+            this.client.onAny((eventName, data) => {
+                this.eventCallback(data);
+            });
+        }
+
+        async send(text) {
+            const res = await this.fetch(
+                `/workspaces/${this.project.workspaceId}/webhooks/query`,
+                {
+                    text,
+                    projectId: this.project.id
+                },
+                {
+                    headers: {
+                        "knowledge-project-apikey": this.project.apiKey,
+                    },
+                }
+            );
+            return res;
+        }
+    }
+
+    async function askQuestion() {
+        var question = document.getElementById("questionInput").value;
+        var chatBox = document.getElementById("chatBox");
+        var selectedChatbot = document.getElementById("chatbotSelect").value;
+
+        // Add user message to chat box
+        var userMessageDiv = document.createElement("div");
+        userMessageDiv.classList.add("message");
+        userMessageDiv.classList.add("user-message");
+        userMessageDiv.innerHTML = "<p><strong>You:</strong> " + question + "</p>";
+        chatBox.appendChild(userMessageDiv);
+
+        // Add fetching indicator
+        var fetchingIndicator = document.createElement("span");
+        fetchingIndicator.classList.add("fetching");
+        fetchingIndicator.textContent = " Fetching...";
+        userMessageDiv.appendChild(fetchingIndicator);
+
+        // Scroll to the latest message
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        const aik = new PrismeaiAIK();
+        try {
+            const selectedChatbotDetails = chatbots[selectedChatbot];
+            await aik.init(
+                {
+                    workspaceId: selectedChatbotDetails.workspaceId,
+                    id: selectedChatbotDetails.id,
+                    apiKey: selectedChatbotDetails.apiKey,
+                },
+                (event) => {
+                    if (event.type === "completedMessage") {
+                        console.log("Response:", event.payload?.content); // Log the response
+                        displayResponse(event.payload?.content, event.payload?.sources);
+                    } else if (event.type === "sendSourcesMessage") {
+                        console.log(event.payload.body.sources.html);
+                    } else if (
+                        event.type === "apiMessageChunk" &&
+                        event?.payload?.concatenated?.value
+                    ) {
+                        console.log(
+                            "Last completed message : " + event.payload.concatenated.value
+                        );
+                    }
+                }
+            );
+            const response = await aik.send(question);
+            console.log("Response:", response); // Log the response
+            displayResponse(response.answer, response.sources);
+        } catch (error) {
+            console.error('There was a problem with the fetch operation:', error);
+        }
+
+        // Remove fetching indicator
+        fetchingIndicator.remove();
+
+        // Reset input field
+        document.getElementById("questionInput").value = "";
+    }
+
+    function displayResponse(answer, sources) {
+    var chatBox = document.getElementById("chatBox");
+ 
+    // Split the answer into separate lines
+    var lines = answer.split("\n");
+ 
+    // Add AI message to chat box
+    var aiMessageDiv = document.createElement("div");
+    aiMessageDiv.classList.add("message");
+    aiMessageDiv.classList.add("ai-message");
+ 
+    // Loop through each line of the response
+    lines.forEach(function(line, index) {
+        var colonIndex = line.indexOf(":");
+        if (colonIndex !== -1) {
+            // Split the line into heading and content based on colon
+            var heading = line.substring(0, colonIndex).trim();
+            var content = line.substring(colonIndex + 1).trim();
+ 
+            // Create a paragraph element for the heading and content
+            var headingElement = document.createElement("p");
+            var contentElement = document.createElement("p");
+ 
+            // If the line is a heading, make it bold
+            if (index === 0) {
+                headingElement.innerHTML = "<strong>AI:</strong> " + "<strong>" + heading + "</strong> " + content;
+            } else {
+                headingElement.innerHTML = "<strong>" + heading + "</strong> " + content;
+            }
+            contentElement.textContent = content;
+ 
+            // Append the elements to the AI message div
+            aiMessageDiv.appendChild(headingElement);
+            aiMessageDiv.appendChild(contentElement);
+        } else {
+            // If no colon is found, treat the whole line as regular content
+            var p = document.createElement("p");
+            p.textContent = line;
+            aiMessageDiv.appendChild(p);
+        }
+    });
+
+        // Displaying source link
+        if (sources && sources.html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(sources.html, "text/html");
+            var anchor = doc.querySelector("a");
+            if (anchor) {
+                var sourceName = anchor.textContent.trim(); // Get the text content of the <a> tag
+                var sourceLink = anchor.href; // Get the href attribute of the <a> tag
+                var sourceLinkElement = document.createElement("p");
+                sourceLinkElement.innerHTML = "<strong>Source:</strong> <a class='source-link' href='" + sourceLink + "' target='_blank'>" + sourceName + "</a>";
+                aiMessageDiv.appendChild(sourceLinkElement);
+            }
+    }
+
+        // Append AI message to chat box
+        chatBox.appendChild(aiMessageDiv);
+
+        // Scroll to the latest message
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>
